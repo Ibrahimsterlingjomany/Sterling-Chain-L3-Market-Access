@@ -6,7 +6,8 @@
   "description": "Infrastructure d'accès au marché de la Sterling Chain L3 pour Market Makers, desks OTC et bots.\n\n**Garantie de règlement** : DvP ATOMIQUE co-signé (transaction Solana v0 unique : jambe 1 = votre USDC/SOL, jambe 2 = SLUSD du Desk). Sans votre signature ed25519 la transaction est indiffusable ; si votre jambe échoue, TOUT est rejoué — zéro SLUSD libéré sans paiement reçu, zéro paiement perdu.\n\n**Qualification obligatoire (§ diffusion)** : les montants L3 sont des COTATIONS de registre certifiées (libellé opérateur « Garanti par l'Asset de Staking L3 (SCS) », montant_verifie_independamment=false). Le board public sert le bloc de qualification des trois couches — à embarquer dans toute représentation tierce.\n\n**Rate limits (nginx)** : handshake verify 1/IP/h · dvp/build 3r/m (burst 1) · market data 60r/m (burst 20) · ws/rfq 6r/m sur handshake WS. Clients polis : ≥22 s entre build/quote/submit.\n\n**WebSocket** : `wss://api.sterlingchain.net/ws/rfq` — événements RFQ (`WELCOME`, `NEW_FRQ_TICKET`, `TICKET_SETTLED`, `POR_STATUS`) + abonnement market data `{\"action\":\"SUBSCRIBE_MARKET\",\"channels\":[\"ticker\",\"l2\",\"trades\"],\"symbols\":[\"SLUSD/USDC\"]}` (push chaque cycle 10 s). Voir docs/MARKET_DATA_FEED.md.",
   "contact": {
    "name": "Sterling Ibrahim Jomany — Opérateur souverain",
-   "url": "https://sterlingchain.net"
+   "url": "https://sterlingchain.net",
+   "email": "contact@sterlingchain.net"
   }
  },
  "servers": [
@@ -88,7 +89,7 @@
       "bearerAuth": []
      }
     ],
-    "description": "Construit la transaction v0 (jambe 1 = apport de la contrepartie vers ATA USDC du Trésor CMqD 2NUyY9Xf… ; jambe 2 = livraison SLUSD). Retourne les octets à co-signer. La garde G5 refuse une contrepartie sans fonds : 409 REFUS_DVP, AUCUNE tx construite, ZÉRO SLUSD libéré.",
+    "description": "Construit la transaction v0 (jambe 1 = apport de la contrepartie vers l'ATA USDC 2NUyY9XfzZ6dHZwRtQMt5oBHhZLNdwTBKwVbjrPwEDGN du Trésor CMqD45Kq5oukPvaMDhzav5RxJqZb1xME1MmV71CzCeTw ; jambe 2 = livraison SLUSD). Retourne les octets à co-signer. La garde G5 refuse une contrepartie sans fonds : 409 REFUS_DVP, AUCUNE tx construite, ZÉRO SLUSD libéré.",
     "requestBody": {
      "required": true,
      "content": {

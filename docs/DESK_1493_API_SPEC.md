@@ -64,10 +64,10 @@ registre `reports/otc_dvp_tickets_registry.json`.
 4. **Le Desk ne signe et ne diffuse JAMAIS** sur `build`. La diffusion n'existe que
    sur `submit`, et seulement derrière la co-signature **et** le verrou
    `STERLING_OTC_ALLOW_BROADCAST`.
-5. **Comptes interdits (§6/§8)** : l'ancre `6aKy…`, la profondeur `2o5D…`, la pool
-   `4wc5…`, le State PDA `A4Dn…`, la PoR Quad-H `E8Mc…`, l'escrow `AH2M…`, le guichet
-   `8Sh1uM1…` et son ATA `CEpY8XPhoh…` ne sont **jamais** des puits de règlement.
-   Le Trésor `CMqD…` ne peut pas traiter avec lui-même (auto-négociation, §8).
+5. **Comptes interdits (§6/§8)** : l'ancre `6aKy9pZP73oysFGmbCcpBUNMFNqVj4ZcLBSQ7fX5Mumu`, la profondeur `2o5DCS9fTxT49XmzX6gRTnskerxik6efnqA5pXqdgLof`, la pool
+   `4wc5NC3ejYC5y4vQD4Eg3PsYW9ArZQV18fY1eHCJfxJQ`, le State PDA `A4Dn…`, la PoR Quad-H `E8Mc…`, l'escrow `AH2Mzb1uGtXBF5iCjdR2zANwsjxVP1zvF8ynMuNyEXhN`, le guichet
+   `8Sh1uM1nef1KVbWCp5g16SGf1AUvMFLphA3XEwfCgG8t` et son ATA `CEpY8XPhohzicMmrUZKn6y27DxmccFnMWyaZfWTZLSjK` ne sont **jamais** des puits de règlement.
+   Le Trésor `CMqD45Kq5oukPvaMDhzav5RxJqZb1xME1MmV71CzCeTw` ne peut pas traiter avec lui-même (auto-négociation, §8).
    `GET /api/v1/otc/status` publie la liste complète dans `comptes_interdits`.
 
 
@@ -107,7 +107,7 @@ Capacité **live** de chaque canal. ⚠ ~8,6 s (lectures RPC mainnet).
     "collateral_4vuf_usdc": 2.030657,          // ⚠ INFORMATIONNEL, MOBILE (§15)
     "l3": { "certified": true, "peg_face_usd": 1.0, "usdc_circle_required": false }
   },
-  "comptes_interdits": { "6aKy9pZP…": "ANCRE_FACIALE_ORACLE_SEULEMENT", "…": "…" },
+  "comptes_interdits": { "6aKy9pZP73oysFGmbCcpBUNMFNqVj4ZcLBSQ7fX5Mumu": "ANCRE_FACIALE_ORACLE_SEULEMENT", "…": "…" },
   "non_circularite": { "conforme": true, "violations": [], "jetons_surveilles": ["…"] }
 }
 ```

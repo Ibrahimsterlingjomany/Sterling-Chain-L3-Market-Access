@@ -11,7 +11,7 @@
 1. **Décote contractuelle de 150 bps** sur chaque ticket FRQ (grille multi-coupures
    50 → 10 000 SLUSD, timeout 75 slots) : votre quote_required = 98,5 % du nominal.
 2. **Règlement DvP ATOMIQUE par construction** : une seule transaction Solana v0 porte
-   votre paiement (USDC/SOL → trésorerie `CMqD…`) ET notre livraison (SLUSD → votre ATA).
+   votre paiement (USDC/SOL → trésorerie `CMqD45Kq5oukPvaMDhzav5RxJqZb1xME1MmV71CzCeTw`) ET notre livraison (SLUSD → votre ATA).
    Sans votre co-signature ed25519 la transaction est **indiffusable** ; si votre jambe
    échoue, la transaction ENTIÈRE est rejouée. **Zéro risque de règlement manqué dans
    les deux sens** — ce n'est pas une promesse, c'est une propriété de la transaction.
@@ -27,8 +27,8 @@
 
 | grandeur | valeur | source |
 |---|---|---|
-| Spread facial ancre SLUSD/USDC | bid 0,9999 / ask 1,0000 (**1,0 bp**) | carnet `6aKy…` via `/api/v1/market/ticker` |
-| Profondeur 92C/SLUSD | ~25,0 M unités de chaque côté | carnet `2o5D…` via `/api/v1/market/depth` |
+| Spread facial ancre SLUSD/USDC | bid 0,9999 / ask 1,0000 (**1,0 bp**) | carnet `6aKy9pZP73oysFGmbCcpBUNMFNqVj4ZcLBSQ7fX5Mumu` via `/api/v1/market/ticker` |
+| Profondeur 92C/SLUSD | ~25,0 M unités de chaque côté | carnet `2o5DCS9fTxT49XmzX6gRTnskerxik6efnqA5pXqdgLof` via `/api/v1/market/depth` |
 | Décote tickets FRQ | **150 bps** (grille 7 coupures) | board public |
 | Latence REST publique | médiane ~0,12 s (p95 < 0,6 s) | mesure 22/09 |
 | Push WS | cycle 10 s (v1) | `MARKET_DATA_FEED.md` |
@@ -83,7 +83,7 @@ npx tsx sdk/typescript/sterling_acquisition_client.ts --smoke [--token 'Bearer �
 | Market data REST | `https://api.sterlingchain.net/api/v1/market/{ticker,depth,klines,trades,symbols}` |
 | Flux push (RFQ + market) | `wss://api.sterlingchain.net/ws/rfq` |
 
-Règlement : votre jambe verse USDC (ATA `2NUyY9Xf…` du Trésor `CMqD…`) ou SOL ;
+Règlement : votre jambe verse USDC (ATA `2NUyY9XfzZ6dHZwRtQMt5oBHhZLNdwTBKwVbjrPwEDGN` du Trésor `CMqD45Kq5oukPvaMDhzav5RxJqZb1xME1MmV71CzCeTw`) ou SOL ;
 notre jambe livre SLUSD. Preuve = **deltas on-chain** de la transaction (jamais un
 statut déclaratif).
 
