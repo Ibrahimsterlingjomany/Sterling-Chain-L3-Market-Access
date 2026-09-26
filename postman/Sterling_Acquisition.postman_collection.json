@@ -1,0 +1,307 @@
+{
+ "info": {
+  "name": "Sterling Chain L3 — Acquisition (Handshake · RFQ · DvP · Market Data)",
+  "description": "Collection officielle pour contreparties externes (MM/OTC/bots).\n\n⚠ Ordre d'usage : 01 Terms → 02 Challenge (renseigner {{pubkey}}) → 03 Verify (la SIGNATURE ed25519 se calcule HORS Postman via les SDK TS/Python — Postman n'a pas d'ed25519 natif ; utiliser `--smoke` des SDK pour générer nonce+signature) → copier le token DANS {{token}} (déjà préfixé Bearer) → 04+ marchés/DvP.\n\nRate limits : verify 1/IP/h · build 3r/m · market 60r/m. Exécutez les requêtes UNE par UNE.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "variable": [
+  {
+   "key": "base_api",
+   "value": "https://api.sterlingchain.net"
+  },
+  {
+   "key": "base_exchange",
+   "value": "https://sterlingchain.net/api"
+  },
+  {
+   "key": "pubkey",
+   "value": "VOTRE_PUBKEY_ED25519_BASE58"
+  },
+  {
+   "key": "nonce",
+   "value": ""
+  },
+  {
+   "key": "signature_b64",
+   "value": ""
+  },
+  {
+   "key": "token",
+   "value": ""
+  },
+  {
+   "key": "symbol",
+   "value": "SLUSD/USDC"
+  }
+ ],
+ "item": [
+  {
+   "name": "00 · Board RFQ public + qualification SCS",
+   "request": {
+    "method": "GET",
+    "url": {
+     "raw": "{{base_exchange}}/v1/exchange/board",
+     "host": [
+      "{{base_exchange}}"
+     ],
+     "path": [
+      "v1",
+      "exchange",
+      "board"
+     ]
+    },
+    "description": "≈15 s (lectures d'oracle) — timeout Postman ≥30 s. Contient qualification_scs (diffusable) + onboarding_url + offres."
+   }
+  },
+  {
+   "name": "01 · Handshake TERMS",
+   "request": {
+    "method": "GET",
+    "url": {
+     "raw": "{{base_api}}/api/v1/dvp/handshake",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "api",
+      "v1",
+      "dvp",
+      "handshake"
+     ]
+    }
+   }
+  },
+  {
+   "name": "02 · Handshake CHALLENGE (→ nonce)",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "body": {
+     "mode": "raw",
+     "raw": "{\"pubkey\": \"{{pubkey}}\"}"
+    },
+    "url": {
+     "raw": "{{base_api}}/api/v1/dvp/handshake",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "api",
+      "v1",
+      "dvp",
+      "handshake"
+     ]
+    },
+    "description": "Retourne {nonce, message_a_signer}. Fenêtre 120 s. Signer ed25519(nonce EN UTF-8 — la chaîne base64 telle quelle, PAS décodée) via le SDK."
+   }
+  },
+  {
+   "name": "03 · Handshake VERIFY (→ token 201)",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "body": {
+     "mode": "raw",
+     "raw": "{\"pubkey\": \"{{pubkey}}\", \"nonce\": \"{{nonce}}\", \"signature\": \"{{signature_b64}}\"}"
+    },
+    "url": {
+     "raw": "{{base_api}}/api/v1/dvp/handshake",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "api",
+      "v1",
+      "dvp",
+      "handshake"
+     ]
+    },
+    "description": "201 = jeton émis {token: 'Bearer …', ttl_s: 604800}. Limite 1/IP/h (429 EMISSION_PAR_IP_TROP_RECENTE). Copier le token TEL QUEL dans {{token}}."
+   }
+  },
+  {
+   "name": "04 · Market TICKER (BBO mainnet)",
+   "request": {
+    "method": "GET",
+    "url": {
+     "raw": "{{base_api}}/api/v1/market/ticker?symbol={{symbol}}",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "api",
+      "v1",
+      "market",
+      "ticker"
+     ],
+     "query": [
+      {
+       "key": "symbol",
+       "value": "{{symbol}}"
+      }
+     ]
+    },
+    "description": "OpenBook v2 mainnet, lecture seule, cycle 10 s. volume_24h=null PAR HONNÊTETÉ (§21)."
+   }
+  },
+  {
+   "name": "05 · Market DEPTH (L2)",
+   "request": {
+    "method": "GET",
+    "url": {
+     "raw": "{{base_api}}/api/v1/market/depth?symbol={{symbol}}&limit=20",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "api",
+      "v1",
+      "market",
+      "depth"
+     ],
+     "query": [
+      {
+       "key": "symbol",
+       "value": "{{symbol}"
+      },
+      {
+       "key": "limit",
+       "value": "20"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "06 · Market KLINES (1m)",
+   "request": {
+    "method": "GET",
+    "url": {
+     "raw": "{{base_api}}/api/v1/market/klines?symbol={{symbol}}&limit=100",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "api",
+      "v1",
+      "market",
+      "klines"
+     ],
+     "query": [
+      {
+       "key": "symbol",
+       "value": "{{symbol}}"
+      },
+      {
+       "key": "limit",
+       "value": "100"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "07 · Market TRADES (traces v1)",
+   "request": {
+    "method": "GET",
+    "url": {
+     "raw": "{{base_api}}/api/v1/market/trades?symbol={{symbol}}",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "api",
+      "v1",
+      "market",
+      "trades"
+     ],
+     "query": [
+      {
+       "key": "symbol",
+       "value": "{{symbol}}"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "08 · DvP BUILD (tx atomique NON SIGNÉE)",
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "{{token}}"
+     }
+    ],
+    "body": {
+     "mode": "raw",
+     "raw": "{\"montant_slusd\": 1000, \"contrepartie\": \"{{pubkey}}\", \"execute\": false}"
+    },
+    "url": {
+     "raw": "{{base_api}}/api/v1/dvp/build",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "api",
+      "v1",
+      "dvp",
+      "build"
+     ]
+    },
+    "description": "403 sans token valide · 409 REFUS_DVP si votre compte USDC/SOL est à sec (garde G5 — aucune tx construite, zéro SLUSD libéré) · 200 = octets à co-signer. Zone 3r/m, burst 1."
+   }
+  },
+  {
+   "name": "09 · DvP STATUS (verrous publics)",
+   "request": {
+    "method": "GET",
+    "url": {
+     "raw": "{{base_api}}/api/v1/dvp/status",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "api",
+      "v1",
+      "dvp",
+      "status"
+     ]
+    }
+   }
+  },
+  {
+   "name": "10 · WS market data (documentation)",
+   "request": {
+    "method": "GET",
+    "url": {
+     "raw": "{{base_api}}/ws/rfq/health",
+     "host": [
+      "{{base_api}}"
+     ],
+     "path": [
+      "ws",
+      "rfq",
+      "health"
+     ]
+    },
+    "description": "Le WS se teste avec un client WebSocket : wss://api.sterlingchain.net/ws/rfq puis envoyer {\"action\":\"SUBSCRIBE_MARKET\",\"channels\":[\"ticker\",\"l2\",\"trades\"]}. Cette requête HTTP est la sonde de vivacité du tunnel (426 = vivant)."
+   }
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+STERLING CHAIN L3 — PUBLIC SDK PACKAGE
+
+Licence propriétaire (22/09/2026).
+
+La reproduction et la modification du code des SDK (TypeScript, Python) sont
+autorisées aux seules fins d’intégration d’une contrepartie au protocole
+d’acquisition Sterling (handshake ed25519, DvP atomique co-signé).
+
+Interdits : rediffusion commerciale, retrait des blocs de qualification
+(§ diffusion), toute représentation des montants L3 comme une réserve cash
+vérifiée. Les marques, la doctrine et l’architecture restent souveraines.
+
+Contact Officiel : label45saintgobain@gmail.com (Demandes officielles, intégrateurs, coordination)
+Contact Général   : contact@sterlingchain.net (Business & partenariats stratégiques)
+Telegram : @sterling_ibrahim · Instagram Pro : @label92saintgobain
+Profil Vérifié : Sterling Ibrahim Jomany (Opérateur Souverain, Sterling Chain L3)

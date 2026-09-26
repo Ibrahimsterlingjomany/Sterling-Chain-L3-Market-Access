@@ -1,0 +1,355 @@
+{
+ "openapi": "3.0.3",
+ "info": {
+  "title": "Sterling Chain L3 — API publique d'acquisition (RFQ · DvP atomique · Market Data)",
+  "version": "1.0.0",
+  "description": "Infrastructure d'accès au marché de la Sterling Chain L3 pour Market Makers, desks OTC et bots.\n\n**Garantie de règlement** : DvP ATOMIQUE co-signé (transaction Solana v0 unique : jambe 1 = votre USDC/SOL, jambe 2 = SLUSD du Desk). Sans votre signature ed25519 la transaction est indiffusable ; si votre jambe échoue, TOUT est rejoué — zéro SLUSD libéré sans paiement reçu, zéro paiement perdu.\n\n**Qualification obligatoire (§ diffusion)** : les montants L3 sont des COTATIONS de registre certifiées (libellé opérateur « Garanti par l'Asset de Staking L3 (SCS) », montant_verifie_independamment=false). Le board public sert le bloc de qualification des trois couches — à embarquer dans toute représentation tierce.\n\n**Rate limits (nginx)** : handshake verify 1/IP/h · dvp/build 3r/m (burst 1) · market data 60r/m (burst 20) · ws/rfq 6r/m sur handshake WS. Clients polis : ≥22 s entre build/quote/submit.\n\n**WebSocket** : `wss://api.sterlingchain.net/ws/rfq` — événements RFQ (`WELCOME`, `NEW_FRQ_TICKET`, `TICKET_SETTLED`, `POR_STATUS`) + abonnement market data `{\"action\":\"SUBSCRIBE_MARKET\",\"channels\":[\"ticker\",\"l2\",\"trades\"],\"symbols\":[\"SLUSD/USDC\"]}` (push chaque cycle 10 s). Voir docs/MARKET_DATA_FEED.md.",
+  "contact": {
+   "name": "Sterling Ibrahim Jomany — Opérateur souverain",
+   "url": "https://sterlingchain.net"
+  }
+ },
+ "servers": [
+  {
+   "url": "https://api.sterlingchain.net",
+   "description": "Sas taker, handshake, DvP, market data (vhost api.)"
+  },
+  {
+   "url": "https://sterlingchain.net/api",
+   "description": "Board RFQ public 1496 (offres + qualification SCS)"
+  }
+ ],
+ "paths": {
+  "/api/v1/dvp/handshake": {
+   "get": {
+    "summary": "Termes du protocole d'onboarding",
+    "tags": [
+     "Auth"
+    ],
+    "responses": {
+     "200": {
+      "description": "standard, algo, étapes, TTL jeton, conditions"
+     }
+    }
+   },
+   "post": {
+    "summary": "Challenge (nonce) puis verify (jeton)",
+    "tags": [
+     "Auth"
+    ],
+    "description": "MÊME route, deux sémantiques selon le corps : {pubkey} → nonce (fenêtre 120 s) ; {pubkey, nonce, signature base64} → 201 + token Bearer (TTL 7 j, limite 1/IP/h). ⚠ La signature ed25519 porte sur les OCTETS UTF-8 de la CHAÎNE base64 du nonce.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "pubkey": {
+          "type": "string",
+          "description": "clé publique ed25519 base58 (compatible Solana Keypair)"
+         },
+         "nonce": {
+          "type": "string"
+         },
+         "signature": {
+          "type": "string",
+          "description": "base64, 64 octets"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "challenge : {nonce, message_a_signer}"
+     },
+     "201": {
+      "description": "jeton émis : {token: 'Bearer …', ttl_s}"
+     },
+     "403": {
+      "description": "SIGNATURE_ED25519_INVALIDE / jeton révoqué"
+     },
+     "429": {
+      "description": "EMISSION_PAR_IP_TROP_RECENTE (1/IP/h, retry_s)"
+     }
+    }
+   }
+  },
+  "/api/v1/dvp/build": {
+   "post": {
+    "summary": "Construire la tx DvP atomique (NON SIGNÉE)",
+    "tags": [
+     "DvP"
+    ],
+    "security": [
+     {
+      "bearerAuth": []
+     }
+    ],
+    "description": "Construit la transaction v0 (jambe 1 = apport de la contrepartie vers ATA USDC du Trésor CMqD 2NUyY9Xf… ; jambe 2 = livraison SLUSD). Retourne les octets à co-signer. La garde G5 refuse une contrepartie sans fonds : 409 REFUS_DVP, AUCUNE tx construite, ZÉRO SLUSD libéré.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "montant_slusd": {
+          "type": "number"
+         },
+         "contrepartie": {
+          "type": "string"
+         },
+         "execute": {
+          "type": "boolean",
+          "enum": [
+           false
+          ],
+          "description": "TOUJOURS false — double verrou de diffusion (§24.4)"
+         }
+        },
+        "required": [
+         "montant_slusd",
+         "contrepartie"
+        ]
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "octets à co-signer (tx v0 non signée)"
+     },
+     "403": {
+      "description": "TAKER_NON_ADMIS_JETON"
+     },
+     "409": {
+      "description": "REFUS_DVP (contrepartie à sec, parité, capacité)"
+     },
+     "429": {
+      "description": "zone 3r/m"
+     }
+    }
+   }
+  },
+  "/api/v1/dvp/submit": {
+   "post": {
+    "summary": "Soumettre la tx CO-SIGNÉE",
+    "tags": [
+     "DvP"
+    ],
+    "security": [
+     {
+      "bearerAuth": []
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "statut de règlement (preuve = deltas on-chain)"
+     },
+     "409": {
+      "description": "REFUS_DVP"
+     },
+     "429": {
+      "description": "zone 6r/m"
+     }
+    }
+   }
+  },
+  "/api/v1/dvp/status": {
+   "get": {
+    "summary": "État du moteur DvP (verrous, bancs de preuve)",
+    "tags": [
+     "DvP"
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     }
+    }
+   }
+  },
+  "/api/v1/dvp/tickets": {
+   "get": {
+    "summary": "Tickets DvP ouverts",
+    "tags": [
+     "DvP"
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     }
+    }
+   }
+  },
+  "/api/v1/market/ticker": {
+   "get": {
+    "summary": "BBO (meilleur bid/offer) — OpenBook v2 mainnet, lecture seule",
+    "tags": [
+     "Market Data"
+    ],
+    "parameters": [
+     {
+      "name": "symbol",
+      "in": "query",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "SLUSD/USDC",
+        "92C/SLUSD"
+       ]
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "{bid, ask, mid, spread_bps, market, role, attribution_profondeur, honnete.volume_24h=null}"
+     },
+     "503": {
+      "description": "PREMIER_CYCLE_EN_COURS"
+     }
+    }
+   }
+  },
+  "/api/v1/market/depth": {
+   "get": {
+    "summary": "Profondeur L2 (carnet agrégé)",
+    "tags": [
+     "Market Data"
+    ],
+    "parameters": [
+     {
+      "name": "symbol",
+      "in": "query",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "schema": {
+       "type": "integer",
+       "default": 20
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "{bids:[{price,size}], asks:[…]}"
+     }
+    }
+   }
+  },
+  "/api/v1/market/klines": {
+   "get": {
+    "summary": "Bougies 1m (mid BBO agrégé depuis le service — append-only)",
+    "tags": [
+     "Market Data"
+    ],
+    "parameters": [
+     {
+      "name": "symbol",
+      "in": "query",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "schema": {
+       "type": "integer",
+       "default": 100
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "{interval:'1m', klines:[[ts,o,h,l,c]]}"
+     }
+    }
+   }
+  },
+  "/api/v1/market/trades": {
+   "get": {
+    "summary": "Traces de remplissage v1 (eventHeap + signatures) — PAS un fill feed Geyser",
+    "tags": [
+     "Market Data"
+    ],
+    "responses": {
+     "200": {
+      "description": "{eventHeap:{count,seqNum}, dernieres_signatures:[…]}"
+     }
+    }
+   }
+  },
+  "/api/v1/market/symbols": {
+   "get": {
+    "summary": "Marchés servis (rôles ancre/profondeur §6)",
+    "tags": [
+     "Market Data"
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     }
+    }
+   }
+  },
+  "/v1/exchange/board": {
+   "get": {
+    "summary": "Board RFQ public : offres du moment + qualification_scs + onboarding_url (serveur 2)",
+    "tags": [
+     "RFQ"
+    ],
+    "responses": {
+     "200": {
+      "description": "≈5 offres par cycle ; latence ≈15 s (lectures d'oracle) — timeout client ≥30 s"
+     }
+    }
+   }
+  },
+  "/v1/exchange/quote": {
+   "post": {
+    "summary": "Devis sur ticket RFQ (serveur 2, zone 3r/m partagée)",
+    "tags": [
+     "RFQ"
+    ],
+    "responses": {
+     "200": {
+      "description": "devis 1:1 avec spread du ticket"
+     },
+     "429": {
+      "description": "zone partagée"
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "securitySchemes": {
+   "bearerAuth": {
+    "type": "http",
+    "scheme": "bearer",
+    "description": "Jeton émis par /api/v1/dvp/handshake (verify). Le démon renvoie le jeton DÉJÀ préfixé « Bearer » — ne jamais re-préfixer."
+   }
+  }
+ },
+ "tags": [
+  {
+   "name": "Auth"
+  },
+  {
+   "name": "DvP"
+  },
+  {
+   "name": "Market Data"
+  },
+  {
+   "name": "RFQ"
+  }
+ ]
+}
